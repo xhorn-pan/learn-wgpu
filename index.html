@@ -5,20 +5,23 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Learn wgpu</title>
+    <style>
+      canvas {
+        background-color: black;
+      }
+    </style>
   </head>
 
   <body>
+    <div id="wasm-example"></div>
+    
     <script type="module">
       import init from "./pkg/learn_wgpu.js";
       init().then(() => {
         console.log("WASM Loaded");
       });
     </script>
-    <style>
-      canvas {
-        background-color: black;
-      }
-    </style>
-    <div id="wasm-example"></div>
+    
+    
   </body>
 </html>
