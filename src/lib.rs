@@ -69,6 +69,7 @@ struct State {
 
     render_pipeline: RenderPipeline,
     vertex_buffer: wgpu::Buffer,
+    num_vertices: u32,
 }
 
 impl State {
@@ -180,6 +181,8 @@ impl State {
             multiview: None,
         });
 
+        let num_vertices = VERTICES.len() as u32;
+
         Self {
             surface,
             device,
@@ -188,6 +191,7 @@ impl State {
             size,
             render_pipeline,
             vertex_buffer,
+            num_vertices,
         }
     }
 
@@ -237,7 +241,7 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..3, 0..1);
+            render_pass.draw(0..self.num_vertices, 0..1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
