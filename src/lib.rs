@@ -3,12 +3,13 @@ use tracing::info;
 use wasm_bindgen::prelude::*;
 
 use wgpu::{
-    Backends, BlendState, Color, ColorTargetState, ColorWrites, CommandEncoderDescriptor,
-    DeviceDescriptor, Face, Features, FragmentState, Instance, InstanceDescriptor, Limits,
-    MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PowerPreference,
-    PrimitiveState, PrimitiveTopology, RenderPassColorAttachment, RenderPassDescriptor,
-    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, ShaderModuleDescriptor,
-    SurfaceConfiguration, TextureDescriptor, TextureUsages, TextureViewDescriptor, VertexState,
+    util::DeviceExt, Backends, BlendState, Color, ColorTargetState, ColorWrites,
+    CommandEncoderDescriptor, DeviceDescriptor, Face, Features, FragmentState, Instance,
+    InstanceDescriptor, Limits, MultisampleState, Operations, PipelineLayoutDescriptor,
+    PolygonMode, PowerPreference, PrimitiveState, PrimitiveTopology, RenderPassColorAttachment,
+    RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions,
+    ShaderModuleDescriptor, SurfaceConfiguration, TextureDescriptor, TextureUsages,
+    TextureViewDescriptor, VertexState,
 };
 use winit::{
     event::*,
@@ -17,7 +18,7 @@ use winit::{
 };
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
@@ -38,6 +39,27 @@ const VERTICES: &[Vertex] = &[
     },
 ];
 
+impl Vertex {
+    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+            ],
+        }
+    }
+}
+
 struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -46,6 +68,7 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
 
     render_pipeline: RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
 }
 
 impl State {
@@ -110,6 +133,12 @@ impl State {
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
             bind_group_layouts: &[],
@@ -122,7 +151,7 @@ impl State {
             vertex: VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[],
+                buffers: &[Vertex::desc()],
             },
             primitive: PrimitiveState {
                 topology: PrimitiveTopology::TriangleList,
@@ -158,6 +187,7 @@ impl State {
             queue,
             size,
             render_pipeline,
+            vertex_buffer,
         }
     }
 
@@ -206,6 +236,7 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..3, 0..1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
