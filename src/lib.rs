@@ -16,6 +16,13 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
+
 struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
