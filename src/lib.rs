@@ -3,9 +3,12 @@ use tracing::info;
 use wasm_bindgen::prelude::*;
 
 use wgpu::{
-    Backends, Color, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, Operations,
-    PowerPreference, RenderPassColorAttachment, RenderPassDescriptor, RequestAdapterOptions,
-    SurfaceConfiguration, TextureDescriptor, TextureUsages, TextureViewDescriptor, CommandEncoderDescriptor, RenderPipeline, ShaderModuleDescriptor, PipelineLayoutDescriptor, RenderPipelineDescriptor, VertexState, FragmentState, ColorTargetState, BlendState, ColorWrites, PrimitiveState, PrimitiveTopology, Face, PolygonMode, MultisampleState,
+    Backends, BlendState, Color, ColorTargetState, ColorWrites, CommandEncoderDescriptor,
+    DeviceDescriptor, Face, Features, FragmentState, Instance, InstanceDescriptor, Limits,
+    MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PowerPreference,
+    PrimitiveState, PrimitiveTopology, RenderPassColorAttachment, RenderPassDescriptor,
+    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, ShaderModuleDescriptor,
+    SurfaceConfiguration, TextureDescriptor, TextureUsages, TextureViewDescriptor, VertexState,
 };
 use winit::{
     event::*,
@@ -85,7 +88,7 @@ impl State {
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
-        let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor{
+        let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
             bind_group_layouts: &[],
             push_constant_ranges: &[],
@@ -224,46 +227,45 @@ pub async fn run() {
 
     let mut state = State::new(&window).await;
 
-    event_loop.run(move |event, _, control_flow|
-         match event {
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => {
-                if !state.input(event) {
-                    match event {
-                        WindowEvent::CloseRequested
-                        | WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::Escape),
-                                    ..
-                                },
-                            ..
-                        } => *control_flow = ControlFlow::Exit,
-                        WindowEvent::Resized(physical_size) => {
-                            state.resize(*physical_size);
-                        }
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            state.resize(**new_inner_size);
-                        }
-                        _ => {}
+    event_loop.run(move |event, _, control_flow| match event {
+        Event::WindowEvent {
+            ref event,
+            window_id,
+        } if window_id == window.id() => {
+            if !state.input(event) {
+                match event {
+                    WindowEvent::CloseRequested
+                    | WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(VirtualKeyCode::Escape),
+                                ..
+                            },
+                        ..
+                    } => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(physical_size) => {
+                        state.resize(*physical_size);
                     }
+                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        state.resize(**new_inner_size);
+                    }
+                    _ => {}
                 }
             }
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                state.update();
-                match state.render() {
-                    Ok(_) => {}
-                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    Err(e) => info!("{:?}", e),
-                }
+        }
+        Event::RedrawRequested(window_id) if window_id == window.id() => {
+            state.update();
+            match state.render() {
+                Ok(_) => {}
+                Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                Err(e) => info!("{:?}", e),
             }
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            _ => {}
+        }
+        Event::MainEventsCleared => {
+            window.request_redraw();
+        }
+        _ => {}
     });
 }
